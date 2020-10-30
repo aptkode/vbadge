@@ -1,0 +1,16 @@
+{
+  "name": "version-badge-generator",
+  "version": "1.0.0",
+  "description": "svg version badge generator service",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "ruwankamadhushan@gmail.com",
+  "license": "ISC",
+  "dependencies": {
+    "badgen": "^3.2.1",
+    "express": "^4.17.1",
+    "xml2js": "^0.4.23"
+  }
+}
