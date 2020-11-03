@@ -2,8 +2,8 @@
 
 const express = require("express");
 const { badgen } = require("badgen");
-const https = require("https");
 const xml2js = require("xml2js");
+const axios = require('axios').default;
 
 const xmlParser = new xml2js.Parser();
 const app = express();
@@ -31,34 +31,30 @@ app.get("/:artifactId/:version", (req, res) => {
 });
 
 app.get("/pom", (req, res) => {
-  const request = https.get(req.query.url, (response) => {
-    var data = "";
-    response.on("data", function (chunk) {
-      data += chunk;
-    });
-    response.on("end", () => {
-      xmlParser.parseString(data, function (err, result) {
-        try {
-          var artifactId = result.project.artifactId[0];
-          var version = "";
-          if (result.project.version !== undefined) {
-            version = result.project.version[0];
-          } else if (
-            result.project.parent[0] !== undefined &&
-            result.project.parent[0].version[0] !== undefined
-          ) {
-            version = result.project.parent[0].version[0];
-          }
-          res.contentType("image/svg+xml");
-          res.end(generateSvg(artifactId, version), "binary");
-        } catch (err) {
-          res.status(400).send("failed to generate!");
+  axios.get(req.query.url)
+  .then(function (response) {
+    xmlParser.parseString(response.data, function (err, result) {
+      try {
+        var artifactId = result.project.artifactId[0];
+        var version = "";
+        if (result.project.version !== undefined) {
+          version = result.project.version[0];
+        } else if (
+          result.project.parent[0] !== undefined &&
+          result.project.parent[0].version[0] !== undefined
+        ) {
+          version = result.project.parent[0].version[0];
         }
-      });
+        res.contentType("image/svg+xml");
+        res.end(generateSvg(artifactId, version), "binary");
+      } catch (err) {
+        console.log(err);
+        res.status(400).send("failed to generate!");
+      }
     });
-  });
-
-  request.on("error", (err) => {
+  })
+  .catch(function (error) {
+    console.log(error);
     res.status(400).send("failed to generate!");
   });
 });

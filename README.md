@@ -1,5 +1,5 @@
 # vbadge
-A svg version badge generator
+A svg version badge generator, like current version for vbadge ![alt text](./v1.0.0.svg)
 
 # run
 
@@ -11,4 +11,4 @@ generate badage by artifactId and version
 - `/:artifactId/:version`
 
 generate badage by raw pom
-- `/pom?url={url-encoded-raw-pom-file-url}` e.g. `/pom?url=https%3A%2F%2Fraw.githubusercontent.com%2Fruwanka%2Fnemo%2Fmaster%2Fgit-actions%2Fpom.xml`
+- `/pom?url={url-encoded-raw-pom-file-url}`

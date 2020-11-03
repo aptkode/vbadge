@@ -9,6 +9,7 @@
   "author": "ruwankamadhushan@gmail.com",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.21.0",
     "badgen": "^3.2.1",
     "express": "^4.17.1",
     "xml2js": "^0.4.23"
