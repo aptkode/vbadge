@@ -36,6 +36,8 @@ with docker
 
 `docker run -p 3000:3000 -v /path-to-gitlab-config-dir:/config/ ghcr.io/aptkode/vbadge:latest`
 
+to avoid 404 issues with docker add `--network host` to run command
+
 # options
 
 ignore all self signed certificat issues
