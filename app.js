@@ -4,6 +4,7 @@ const express = require("express");
 const { badgen } = require("badgen");
 const xml2js = require("xml2js");
 const axios = require("axios").default;
+const fs = require("fs");
 
 if (process.env.INSECURE_TLS) {
   process.env["NODE_TLS_REJECT_UNAUTHORIZED"] = 0;
@@ -12,6 +13,18 @@ if (process.env.INSECURE_TLS) {
 const xmlParser = new xml2js.Parser();
 const app = express();
 const port = 3000;
+
+const gitlabConfig = readGitlabConfig();
+
+function readGitlabConfig() {
+  try {
+    let content = fs.readFileSync("./config/gitlab-config.json");
+    return JSON.parse(content);
+  } catch (err) {
+    console.log(err);
+  }
+  return { enabled: false };
+}
 
 function generateSvg(artifactId, version) {
   const svgString = badgen({
@@ -27,18 +40,20 @@ function generateSvg(artifactId, version) {
   return svgString;
 }
 
-app.get("/:artifactId/:version", (req, res) => {
-  const artifactId = req.params.artifactId;
-  const version = req.params.version;
-  res.contentType("image/svg+xml");
-  res.end(generateSvg(artifactId, version), "binary");
-});
+function getArtifactIdAndVersionFromPom(url, callback) {
+  let config = {
+    headers: {
+      "PRIVATE-TOKEN": gitlabConfig.private_token,
+    },
+  };
 
-app.get("/pom", (req, res) => {
   axios
-    .get(req.query.url)
+    .get(url, config)
     .then(function (response) {
       xmlParser.parseString(response.data, function (err, result) {
+        if (err) {
+          callback(err, undefined);
+        }
         try {
           var artifactId = result.project.artifactId[0];
           var version = "";
@@ -50,18 +65,54 @@ app.get("/pom", (req, res) => {
           ) {
             version = result.project.parent[0].version[0];
           }
-          res.contentType("image/svg+xml");
-          res.end(generateSvg(artifactId, version), "binary");
+          callback(undefined, { artifactId, version });
         } catch (err) {
-          console.log(err);
-          res.status(400).send("failed to generate!");
+          callback(err, undefined);
         }
       });
     })
     .catch(function (error) {
-      console.log(error);
-      res.status(400).send("failed to generate!");
+      callback(error, undefined);
     });
+}
+
+app.get("/:artifactId/:version", (req, res) => {
+  const artifactId = req.params.artifactId;
+  const version = req.params.version;
+  res.contentType("image/svg+xml");
+  res.end(generateSvg(artifactId, version), "binary");
+});
+
+app.get("/pom", (req, res) => {
+  getArtifactIdAndVersionFromPom(req.query.url, (err, result) => {
+    if (err) {
+      console.log(err);
+    } else {
+      res.contentType("image/svg+xml");
+      res.end(generateSvg(result.artifactId, result.version), "binary");
+    }
+  });
+});
+
+app.get("/gitlab/:project/:pomPath", (req, res) => {
+  if (!gitlabConfig.enabled) {
+    res.status(200).send("gitlab configuration is not provided or disabled!");
+  }
+
+  let url = `${gitlabConfig.host}/api/v4/projects/${encodeURIComponent(
+    req.params.project
+  )}/repository/files/${encodeURIComponent(req.params.pomPath)}/raw?ref=${
+    req.query.branch
+  }`;
+
+  getArtifactIdAndVersionFromPom(url, (err, result) => {
+    if (err) {
+      console.log(err);
+    } else {
+      res.contentType("image/svg+xml");
+      res.end(generateSvg(result.artifactId, result.version), "binary");
+    }
+  });
 });
 
 app.listen(port, () => {
